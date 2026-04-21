@@ -1,0 +1,95 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Node {
+    int cnt;        // количество черных отрезков
+    int sum;        // длина черного
+    int left, right; // цвет границ
+    int lazy;       // -1 нет, 0 белый, 1 черный
+};
+
+const int MAXC = 1000000; // диапазон координат [-500k, 500k)
+Node tree[4 * MAXC];
+
+void apply(int v, int tl, int tr, int color) {
+    tree[v].lazy = color;
+    tree[v].left = tree[v].right = color;
+    if (color == 1) {
+        tree[v].sum = tr - tl;
+        tree[v].cnt = 1;
+    } else {
+        tree[v].sum = 0;
+        tree[v].cnt = 0;
+    }
+}
+
+void push(int v, int tl, int tr) {
+    if (tree[v].lazy == -1) return;
+    int tm = (tl + tr) / 2;
+    apply(v*2, tl, tm, tree[v].lazy);
+    apply(v*2+1, tm, tr, tree[v].lazy);
+    tree[v].lazy = -1;
+}
+
+Node merge(Node a, Node b) {
+    Node res;
+    res.sum = a.sum + b.sum;
+    res.cnt = a.cnt + b.cnt;
+    if (a.right == 1 && b.left == 1) res.cnt--;
+
+    res.left = a.left;
+    res.right = b.right;
+    res.lazy = -1;
+    return res;
+}
+
+void build(int v, int tl, int tr) {
+    tree[v].lazy = -1;
+    if (tr - tl == 1) {
+        tree[v] = {0, 0, 0, 0, -1};
+        return;
+    }
+    int tm = (tl + tr) / 2;
+    build(v*2, tl, tm);
+    build(v*2+1, tm, tr);
+    tree[v] = merge(tree[v*2], tree[v*2+1]);
+}
+
+void update(int v, int tl, int tr, int l, int r, int color) {
+    if (l >= r) return;
+    if (l == tl && r == tr) {
+        apply(v, tl, tr, color);
+        return;
+    }
+    push(v, tl, tr);
+    int tm = (tl + tr) / 2;
+    update(v*2, tl, tm, l, min(r, tm), color);
+    update(v*2+1, tm, tr, max(l, tm), r, color);
+    tree[v] = merge(tree[v*2], tree[v*2+1]);
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int n;
+    cin >> n;
+
+    int SHIFT = 500000; // сдвиг координат
+    int SIZE = 1000000;
+
+    build(1, 0, SIZE);
+
+    while (n--) {
+        char c;
+        int x, l;
+        cin >> c >> x >> l;
+
+        int L = x + SHIFT;
+        int R = L + l;
+
+        update(1, 0, SIZE, L, R, (c == 'B'));
+
+        cout << tree[1].cnt << " " << tree[1].sum << "\n";
+    }
+}
