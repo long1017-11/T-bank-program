@@ -1,0 +1,99 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+using ll = long long;
+
+const int MAXN = 100000;
+
+ll tree[4*MAXN], add[4*MAXN], set_val[4*MAXN];
+bool has_set[4*MAXN];
+
+void apply_set(int v, int tl, int tr, ll val) {
+    tree[v] = val * (tr - tl);
+    set_val[v] = val;
+    has_set[v] = true;
+    add[v] = 0;
+}
+
+void apply_add(int v, int tl, int tr, ll val) {
+    tree[v] += val * (tr - tl);
+    if (has_set[v]) set_val[v] += val;
+    else add[v] += val;
+}
+
+void push(int v, int tl, int tr) {
+    int tm = (tl + tr) / 2;
+
+    if (has_set[v]) {
+        apply_set(v*2, tl, tm, set_val[v]);
+        apply_set(v*2+1, tm, tr, set_val[v]);
+        has_set[v] = false;
+    }
+
+    if (add[v]) {
+        apply_add(v*2, tl, tm, add[v]);
+        apply_add(v*2+1, tm, tr, add[v]);
+        add[v] = 0;
+    }
+}
+
+void update_set(int v, int tl, int tr, int l, int r, ll val) {
+    if (l >= r) return;
+    if (l == tl && r == tr) {
+        apply_set(v, tl, tr, val);
+        return;
+    }
+    push(v, tl, tr);
+    int tm = (tl + tr) / 2;
+    update_set(v*2, tl, tm, l, min(r, tm), val);
+    update_set(v*2+1, tm, tr, max(l, tm), r, val);
+    tree[v] = tree[v*2] + tree[v*2+1];
+}
+
+void update_add(int v, int tl, int tr, int l, int r, ll val) {
+    if (l >= r) return;
+    if (l == tl && r == tr) {
+        apply_add(v, tl, tr, val);
+        return;
+    }
+    push(v, tl, tr);
+    int tm = (tl + tr) / 2;
+    update_add(v*2, tl, tm, l, min(r, tm), val);
+    update_add(v*2+1, tm, tr, max(l, tm), r, val);
+    tree[v] = tree[v*2] + tree[v*2+1];
+}
+
+ll query(int v, int tl, int tr, int l, int r) {
+    if (l >= r) return 0;
+    if (l == tl && r == tr) return tree[v];
+    push(v, tl, tr);
+    int tm = (tl + tr) / 2;
+    return query(v*2, tl, tm, l, min(r, tm)) +
+           query(v*2+1, tm, tr, max(l, tm), r);
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int n, m;
+    cin >> n >> m;
+
+    while (m--) {
+        int t;
+        cin >> t;
+        if (t == 1) {
+            int l, r; ll v;
+            cin >> l >> r >> v;
+            update_set(1, 0, n, l, r, v);
+        } else if (t == 2) {
+            int l, r; ll v;
+            cin >> l >> r >> v;
+            update_add(1, 0, n, l, r, v);
+        } else {
+            int l, r;
+            cin >> l >> r;
+            cout << query(1, 0, n, l, r) << "\n";
+        }
+    }
+}
