@@ -1,1 +1,79 @@
+import bisect
+import sys
 
+
+class Center:
+    def __init__(self, x, y, id):
+        self.x = x
+        self.y = y
+        self.id = id
+
+
+def read_centers():
+    data = sys.stdin.buffer.read().split()
+    n = int(data[2])
+    centers = []
+    idx = 3
+    for id in range(n):
+        x = int(float(data[idx]) * 2)
+        y = int(float(data[idx + 1]) * 2)
+        centers.append(Center(x, y, id))
+        idx += 2
+    return centers
+
+
+def calculate_x_indices(centers):
+    y_values = sorted(set(center.y for center in centers))
+    centers.sort(key=lambda center: center.x)
+    return y_values
+
+
+def calculate_distances(centers, y_values):
+    n = len(y_values)
+    bit = [0] * n
+    distances = [0] * len(centers)
+    
+    y_vals = y_values
+    bit_arr = bit
+    dist_arr = distances
+    bisect_left = bisect.bisect_left
+    bisect_right = bisect.bisect_right
+    
+    for center in centers:
+        cx = center.x
+        cy = center.y
+        cid = center.id
+        
+        y_index = bisect_left(y_vals, cy)
+        
+        idx = y_index
+        s = 0
+        while idx >= 0:
+            s += bit_arr[idx]
+            idx = (idx & (idx + 1)) - 1
+        
+        dist = cx - s
+        dist_arr[cid] = dist
+        
+        delta = dist * 2
+        y_index1 = bisect_right(y_vals, cy - dist)
+        y_index2 = bisect_right(y_vals, cy + dist)
+        
+        idx = y_index1
+        while idx < n:
+            bit_arr[idx] += delta
+            idx |= idx + 1
+        
+        idx = y_index2
+        while idx < n:
+            bit_arr[idx] -= delta
+            idx |= idx + 1
+    
+    return distances
+
+
+centers = read_centers()
+y_values = calculate_x_indices(centers)
+distances = calculate_distances(centers, y_values)
+
+print(' '.join(map(str, distances)))
